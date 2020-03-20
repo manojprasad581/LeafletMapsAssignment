@@ -1,0 +1,96 @@
+---
+title: "Developing Data Products - Week2 Assignment"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## <u><b> Objective </u></b> 
+ - <u><b> The objectives of this document are: </u></b> 
+    * Create an interactive map using Leaflet package
+    * Create an R Markdown document embedding the interactive map
+    * Host the R Markdown document on GitHub Pages
+    
+## <u><b> "Quakes" Dataset - Exploration </u></b> 
+
+#### <u><b> Loading "Quakes" Dataset </u></b> 
+ - Lets load the R built in "quakes" dataset
+ 
+```{r load_dataset}
+ library(leaflet)
+ library(dplyr)
+ data("quakes")
+```
+
+#### <u><b> "Quakes" Dataset - Inpection </u></b> 
+ - Lets look at first few rows of "quakes" dataset via head() command
+ 
+```{r view_dataset}
+ head(quakes)
+```
+
+ - Lets look at unique values of mag column which signifies magnitude of the earth quake
+ 
+```{r view_mag}
+ unique(quakes$mag)
+```
+
+ - Magnitudes are all in ranges (4.0 ~ 4.9), (5.0 ~ 5.9), (6.0 ~ 6.9)
+
+#### <u><b> "Quakes" Dataset - Enrichment </u></b> 
+ - Lets assign some colors (add a new column) as per the below guidelines. This would help later in mapping this
+    * (4.0 ~ 4.9) -> Blue
+    * (5.0 ~ 5.9) -> Orange
+    * (6.0 ~ 6.9) -> Red
+ 
+```{r add_color}
+   quakes <- quakes %>% mutate (
+     color = case_when(
+         mag >= 4.0 & mag <= 4.9 ~ "blue",
+         mag >= 5.0 & mag <= 5.9 ~ "orange",
+         mag >= 6.0 & mag <= 6.9 ~ "red",
+     )
+   )
+```
+
+#### <u><b> "Quakes" Dataset - Subset </u></b> 
+ - Lets group the rows by color, sort the group in descending order by their magnitudes and pick top 15 rows
+ - We are trying to restrict analysis on the top 15 events among each group
+ 
+```{r group_dataset}
+ quakes <- quakes %>%
+    group_by(color) %>%
+    arrange(desc(mag)) %>%
+    do(head(., n = 15))
+```
+
+ - Lets look at first few rows of "quakes" dataset again to make sure we have the new color column
+ 
+```{r view_quakes_dataset}
+ quakes
+```
+
+## <u><b> "Quakes" Dataset - Interactive Maps </u></b> 
+ - Lets plot the derived quakes dataset into an interative map via leaflet package
+ 
+```{r map_dataset}
+quakes %>% 
+  leaflet() %>%
+  addTiles() %>%
+  addCircleMarkers(color = quakes$color, popup = paste("Magnitude = ", quakes$mag), radius = ~ mag ^ 2,
+    stroke = FALSE, fillOpacity = 0.5) %>%
+  addLegend(labels = c("Mag = (4.0 ~ 4.9)", "Mag = (5.0 ~ 5.9)", "Mag = (6.0 ~ 6.9)"), colors = c("blue", "red", "green"))
+```
+
+ - As the legend says:
+    - Red circles signifies earthquakes reaching magnitude of (6.0 ~ 6.9)
+    - Orange circles signifies earthquakes reaching magnitude of (5.0 ~ 5.9)
+    - Blue circles signifies earthquakes reaching magnitude of (4.0 ~ 4.9)
+    
+ - The radius of the circle markers increases with the increasing value of magnitude
+    - Hence Red circles are larger compared to Blue ones
+    
+ - Clicking on any cirlce would yield a pop up to display it's magnitude value
